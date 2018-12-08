@@ -94,9 +94,10 @@ defmodule ElixirSense.Core.Source do
 
   def which_func(prefix) do
     tokens =
-      case prefix |> String.to_char_list |> :elixir_tokenizer.tokenize(1, []) do
+      case prefix |> String.to_charlist() |> :elixir_tokenizer.tokenize(1, []) do
         {:ok, _, _, tokens} ->
-          tokens |> Enum.reverse
+          tokens |> Enum.reverse()
+
         {:error, {_line, _error_prefix, _token}, _rest, sofar} ->
           # DEBUG
           # IO.puts :stderr, :elixir_utils.characters_to_binary(error_prefix)
