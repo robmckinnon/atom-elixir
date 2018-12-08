@@ -46,14 +46,15 @@ defmodule ElixirSense.Core.Introspection do
 
   def get_func_docs_md(mod, fun) do
     docs =
-      case Code.get_docs(mod, :docs) do
+      case Code.fetch_docs(mod) do
         nil -> nil
-        docs ->
-          for {{f, arity}, _, _, args, text} <- docs, f == fun do
-            fun_args_text = Enum.map_join(args, ", ", &format_doc_arg(&1)) |> String.replace("\\\\", "\\\\\\\\")
+
+        {:docs_v1, _, :elixir, _, _, _, docs} ->
+          for {{:function, f, arity}, _, [args], %{"en" => text}, _} <- docs, f == fun do
+            fun_args_text = String.replace(args, "\\\\", "\\\\\\\\")
             mod_str = module_to_string(mod)
             fun_str = Atom.to_string(fun)
-            "> #{mod_str}.#{fun_str}(#{fun_args_text})\n\n#{get_spec_text(mod, fun, arity)}#{text}"
+            "> #{mod_str}.#{fun_args_text}\n\n#{get_spec_text(mod, fun, arity)}#{text}"
           end
       end
 
