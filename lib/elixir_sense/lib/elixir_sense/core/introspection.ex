@@ -24,11 +24,13 @@ defmodule ElixirSense.Core.Introspection do
 
   @spec get_all_docs(mod_fun) :: docs
   def get_all_docs({mod, nil}) do
-    %{docs: get_docs_md(mod), types: get_types_md(mod), callbacks: get_callbacks_md(mod)}
+    # %{docs: get_docs_md(mod), types: get_types_md(mod), callbacks: get_callbacks_md(mod)}
+    %{docs: get_docs_md(mod), types: nil, callbacks: nil}
   end
 
   def get_all_docs({mod, fun}) do
-    %{docs: get_func_docs_md(mod, fun), types: get_types_md(mod)}
+    # %{docs: get_func_docs_md(mod, fun), types: get_types_md(mod)}
+    %{docs: nil, types: nil}
   end
 
   def get_signatures(mod, fun, code_docs \\ nil) do
@@ -63,9 +65,9 @@ defmodule ElixirSense.Core.Introspection do
 
   def get_docs_md(mod) when is_atom(mod) do
     mod_str = module_to_string(mod)
-    case Code.get_docs(mod, :moduledoc) do
-      {_line, doc} when is_binary(doc) ->
-        "> #{mod_str}\n\n" <> doc
+    case Code.fetch_docs(mod) do
+      {:docs_v1, _, :elixir, _, %{"en" => module_doc}, _, doc} when is_binary(module_doc) ->
+        "> #{mod_str}\n\n" <> module_doc
       _ ->
         "No documentation available"
     end
@@ -126,9 +128,9 @@ defmodule ElixirSense.Core.Introspection do
   end
 
   defp get_types(module) when is_atom(module) do
-    case Typespec.beam_types(module) do
-      nil   -> []
-      types -> types
+    case Code.Typespec.fetch_types(module) do
+      {:ok, types} -> types
+      :error   -> []
     end
   end
 
