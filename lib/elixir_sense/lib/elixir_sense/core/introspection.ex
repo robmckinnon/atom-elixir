@@ -30,17 +30,20 @@ defmodule ElixirSense.Core.Introspection do
 
   def get_all_docs({mod, fun}) do
     # %{docs: get_func_docs_md(mod, fun), types: get_types_md(mod)}
-    %{docs: nil, types: nil}
+    %{docs: get_func_docs_md(mod, fun), types: nil}
   end
 
   def get_signatures(mod, fun, code_docs \\ nil) do
-    docs = code_docs || Code.get_docs(mod, :docs) || []
-    for {{f, arity}, _, _, args, text} <- docs, f == fun do
+    # docs = code_docs || Code.fetch_docs(mod) || []
+    docs = Code.fetch_docs(mod) || []
+    for {{:function, f, arity}, _, [args], %{"en" => text}, _} <- docs, f == fun do
       fun_args = Enum.map(args, &format_doc_arg(&1))
       fun_str = Atom.to_string(fun)
       doc = extract_summary_from_docs(text)
       spec = get_spec(mod, fun, arity)
-      %{name: fun_str, params: fun_args, documentation: doc, spec: spec}
+
+      %{name: "some fun", params: ["foo", "bar", "baz"], documentation: "", spec: ""}
+      #%{name: fun_str, params: fun_args, documentation: doc, spec: spec}
     end
   end
 
@@ -53,7 +56,6 @@ defmodule ElixirSense.Core.Introspection do
           for {{:function, f, arity}, _, [args], %{"en" => text}, _} <- docs, f == fun do
             fun_args_text = String.replace(args, "\\\\", "\\\\\\\\")
             mod_str = module_to_string(mod)
-            fun_str = Atom.to_string(fun)
             "> #{mod_str}.#{fun_args_text}\n\n#{get_spec_text(mod, fun, arity)}#{text}"
           end
       end
@@ -123,7 +125,8 @@ defmodule ElixirSense.Core.Introspection do
   end
 
   def get_types_with_docs(module) when is_atom(module) do
-    get_types(module) |> Enum.map(fn {_, {t, _, _args}} = type ->
+    types = get_types(module)
+    types |> Enum.map(fn {_, {t, _, _args}} = type ->
       %{type: format_type(type), doc: get_type_doc(module, t)}
     end)
   end
@@ -143,12 +146,12 @@ defmodule ElixirSense.Core.Introspection do
   end
 
   defp format_type({:opaque, type}) do
-    {:::, _, [ast, _]} = Typespec.type_to_ast(type)
+    {:::, _, [ast, _]} = Code.Typespec.type_to_quoted(type)
     "@opaque #{format_spec_ast(ast)}"
   end
 
   defp format_type({kind, type}) do
-    ast = Typespec.type_to_ast(type)
+    ast = Code.Typespec.type_to_quoted(type)
     "@#{kind} #{format_spec_ast(ast)}"
   end
 
@@ -234,10 +237,10 @@ defmodule ElixirSense.Core.Introspection do
   end
 
   defp get_type_doc(module, type) do
-    case Code.get_docs(module, :type_docs) do
+    case Code.fetch_docs(module) do
       nil  -> ""
-      docs ->
-        {{_, _}, _, _, description} = Enum.find(docs, fn({{name, _}, _, _, _}) ->
+      {:docs_v1, _, :elixir, _, _, _, docs} ->
+        {{_, _, _}, _, _, %{"en" => description}, _} = Enum.find(docs, fn({{_, name, _}, _, _, _, _}) ->
           type == name
         end)
         description || ""
@@ -449,6 +452,7 @@ defmodule ElixirSense.Core.Introspection do
   def module_functions_info(module) do
     docs = Code.get_docs(module, :docs) || []
     specs = get_module_specs(module)
+
     for {{f, a}, _line, func_kind, _sign, doc} = func_doc <- docs, doc != false, into: %{} do
       spec = Map.get(specs, {f,a}, "")
       {fun_args, desc} = extract_fun_args_and_desc(func_doc)
