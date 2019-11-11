@@ -3,14 +3,14 @@ defmodule Alchemist.Helpers.ModuleInfo do
   @moduledoc false
 
   def moduledoc?(module) do
-    case Code.get_docs module, :moduledoc do
+    case Code.fetch_docs module do
       {_, doc} -> is_binary doc
       _ -> false
     end
   end
 
   def docs?(module, function) do
-    docs = Code.get_docs module, :docs
+    docs = Code.fetch_docs module
     do_docs?(docs, function)
   end
 
