@@ -263,7 +263,7 @@ defmodule ElixirSense.Core.Introspection do
     docs =
       @wrapped_behaviours
       |> Map.get(mod, mod)
-      |> Code.get_docs(:callback_docs)
+      |> Code.fetch_docs()
 
     {callbacks || [], docs || []}
   end
@@ -371,7 +371,7 @@ defmodule ElixirSense.Core.Introspection do
     do: {:"arg#{i}", [], nil}
 
   def get_module_docs_summary(module) do
-    case Code.get_docs module, :moduledoc do
+    case Code.fetch_docs module do
       {_, doc} -> extract_summary_from_docs(doc)
       _ -> ""
     end
@@ -450,7 +450,7 @@ defmodule ElixirSense.Core.Introspection do
   end
 
   def module_functions_info(module) do
-    docs = Code.get_docs(module, :docs) || []
+    docs = Code.fetch_docs(module) || []
     specs = get_module_specs(module)
 
     for {{f, a}, _line, func_kind, _sign, doc} = func_doc <- docs, doc != false, into: %{} do

@@ -27,7 +27,7 @@ defmodule ElixirSense.Providers.Signature do
   end
 
   defp find_signatures({mod, fun}, metadata) do
-    docs = Code.get_docs(mod, :docs)
+    docs = Code.fetch_docs(mod)
     case Metadata.get_function_signatures(metadata, mod, fun, docs) do
       [] -> Introspection.get_signatures(mod, fun, docs)
       signatures -> signatures

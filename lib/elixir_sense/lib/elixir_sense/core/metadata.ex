@@ -41,7 +41,7 @@ defmodule ElixirSense.Core.Metadata do
   end
 
   def get_function_signatures(%__MODULE__{} = metadata, module, function, code_docs \\ nil) do
-    docs = code_docs || Code.get_docs(module, :docs) || []
+    docs = code_docs || Code.fetch_docs(module) || []
 
     params_list =
       get_function_info(metadata, module, function)
@@ -65,7 +65,7 @@ defmodule ElixirSense.Core.Metadata do
   end
 
   defp get_function_line_using_docs(module, function) do
-    docs = Code.get_docs(module, :docs)
+    docs = Code.fetch_docs(module)
 
     for {{func, _arity}, line, _kind, _, _} <- docs, func == function do
       line
